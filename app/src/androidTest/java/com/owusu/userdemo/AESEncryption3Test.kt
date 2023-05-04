@@ -14,6 +14,8 @@ class AESEncryption3Test {
 
     @Test
     fun testEncryptionDecryption() {
+
+        //Log.v("AESEncryption3Test", "Text to be encrtpted is\n"+textToBeEncrypted)
         val aes = AESEncryption3()
 
         // Initialize the key and IV from the passphrase and salt

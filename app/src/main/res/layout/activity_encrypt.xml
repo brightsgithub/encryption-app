@@ -25,24 +25,28 @@
         android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/text_input_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Text to encrypt"
-        app:boxStrokeColor="@color/purple_500"
-        app:counterEnabled="true">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/text_edit"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/text_input_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textMultiLine"
-            android:textColor="@color/purple_500"
-            android:textSize="18sp" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:hint="Text to encrypt"
+            app:boxStrokeColor="@color/purple_500"
+            app:counterEnabled="true">
 
-    <TextView
+            <EditText
+                android:id="@+id/text_edit"
+                android:inputType="textMultiLine|textNoSuggestions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top|start"
+                android:minLines="10"
+                android:textColor="@color/purple_500"
+                android:textSize="18sp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+        <TextView
         android:id="@+id/salt_prompt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -62,6 +66,7 @@
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/salt_edit"
+            android:inputType="textNoSuggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="18sp"
@@ -88,6 +93,7 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/passphrase_edit"
+                android:inputType="textNoSuggestions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
@@ -121,6 +127,21 @@
                 android:textColor="@color/purple_500" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <ImageView
+            android:id="@+id/lock_open"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/baseline_lock_open_24"
+            android:layout_width="60dp"
+            android:layout_height="60dp"/>
+
+        <ImageView
+            android:id="@+id/locked"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/baseline_lock_24"
+            android:visibility="gone"
+            android:layout_width="60dp"
+            android:layout_height="60dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -128,13 +149,22 @@
         android:layout_marginTop="24dp">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/preview_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Preview"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/purple_500"
+            android:layout_weight="1"
+            android:layout_marginRight="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/encrypt_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Encrypt Text"
-            android:textSize="18sp"
+            android:text="Encrypt"
             android:textColor="@color/white"
-            android:backgroundTint="@color/purple_500"
+            android:backgroundTint="@color/dark_green"
             android:layout_weight="1"
             android:layout_marginRight="8dp"/>
 
@@ -142,10 +172,9 @@
             android:id="@+id/decrypt_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Decrypt Text"
-            android:textSize="18sp"
+            android:text="Decrypt"
             android:textColor="@color/white"
-            android:backgroundTint="@color/purple_500"
+            android:backgroundTint="@color/red"
             android:layout_weight="1"
             android:layout_marginLeft="8dp"/>
 
@@ -171,6 +200,25 @@
         android:padding="8dp"
         android:background="@color/black"
         />
+
+        <TextView
+            android:id="@+id/time_taken_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time taken"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/time_taken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textIsSelectable="true"
+            android:padding="8dp"
+            />
     </LinearLayout>
 
 </ScrollView>
