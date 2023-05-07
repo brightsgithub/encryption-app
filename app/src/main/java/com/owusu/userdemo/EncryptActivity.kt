@@ -1,23 +1,26 @@
 package com.owusu.userdemo
 
 import android.app.ProgressDialog
+import android.content.Context
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
-import android.text.InputType
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.view.inputmethod.InputMethodManager
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.MultiFormatWriter
+import com.google.zxing.WriterException
+import com.google.zxing.common.BitMatrix
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Calendar
+import java.util.*
+
 
 class EncryptActivity : AppCompatActivity() {
 
@@ -30,6 +33,7 @@ class EncryptActivity : AppCompatActivity() {
     private lateinit var startTime: String
     private lateinit var endTime: String
     private lateinit var timeTakenView: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         myDateUtils = MyDateUtils.getInstance()
@@ -45,6 +49,8 @@ class EncryptActivity : AppCompatActivity() {
         val encryptButton = findViewById<Button>(R.id.encrypt_button)
         val decryptButton = findViewById<Button>(R.id.decrypt_button)
         val resultView = findViewById<TextView>(R.id.result_view)
+        val imageCode: ImageView = findViewById(R.id.imageCode)
+
         timeTakenView = findViewById(R.id.time_taken)
 
         previewBtn.setOnClickListener {
@@ -87,6 +93,7 @@ class EncryptActivity : AppCompatActivity() {
                         resultView.text = encryptedText
                         closeDialog()
                         showTimeTaken()
+                        showQRCode(imageCode, encryptedText)
                     }
                 }
             }
@@ -119,9 +126,27 @@ class EncryptActivity : AppCompatActivity() {
                         resultView.text = decryptedText
                         closeDialog()
                         showTimeTaken()
+                        showQRCode(imageCode, decryptedText)
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * QR Code has a limited size of text it can take
+     */
+    private fun showQRCode(imageCode: ImageView, text: String) {
+        //initializing MultiFormatWriter for QR code
+        val mWriter = MultiFormatWriter()
+        try {
+            //BitMatrix class to encode entered text and set Width & Height
+            val mMatrix: BitMatrix = mWriter.encode(text, BarcodeFormat.QR_CODE, 1200, 1200)
+            val mEncoder = BarcodeEncoder()
+            val mBitmap: Bitmap = mEncoder.createBitmap(mMatrix) //creating bitmap of code
+            imageCode.setImageBitmap(mBitmap) //Setting generated QR code to imageView
+        } catch (e: WriterException) {
+            e.printStackTrace()
         }
     }
 

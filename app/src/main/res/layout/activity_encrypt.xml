@@ -29,7 +29,7 @@
             android:id="@+id/text_input_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Text to encrypt"
+            android:hint="Text to encrypt/decrypt"
             app:boxStrokeColor="@color/purple_500"
             app:counterEnabled="true">
 
@@ -219,7 +219,29 @@
             android:textIsSelectable="true"
             android:padding="8dp"
             />
+
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:layout_height="wrap_content">
+
+        <!--We are using this image
+        view to display our QR code-->
+            <ImageView
+                android:id="@+id/imageCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"/>
+        </RelativeLayout>
+
+
     </LinearLayout>
+
+
+
+
 
 </ScrollView>
 
