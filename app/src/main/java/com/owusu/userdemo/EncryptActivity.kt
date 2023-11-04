@@ -21,10 +21,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 
-
 class EncryptActivity : AppCompatActivity() {
 
-    val aes = AESEncryption3()
+    private  lateinit var aes: AESEncryption3
     private lateinit var mProgressDialog: ProgressDialog
     lateinit var timerHandler : Handler
     lateinit var timeRunnable : Runnable
@@ -36,6 +35,7 @@ class EncryptActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        aes = AESEncryption3()
         myDateUtils = MyDateUtils.getInstance()
         setContentView(R.layout.activity_encrypt)
         initProgressDialog()
@@ -43,12 +43,14 @@ class EncryptActivity : AppCompatActivity() {
         val lockOpenImg = findViewById<ImageView>(R.id.lock_open)
         val lockedImg = findViewById<ImageView>(R.id.locked)
         val textEdit = findViewById<EditText>(R.id.text_edit)
-        val saltEdit = findViewById<TextInputEditText>(R.id.salt_edit)
+        val metadataEdit = findViewById<TextInputEditText>(R.id.metadata_edit)
         val passphraseEdit = findViewById<TextInputEditText>(R.id.passphrase_edit)
         val iterationCountEdit = findViewById<TextInputEditText>(R.id.iteration_count_edit)
         val encryptButton = findViewById<Button>(R.id.encrypt_button)
         val decryptButton = findViewById<Button>(R.id.decrypt_button)
+        val clearButton = findViewById<Button>(R.id.clear_button)
         val resultView = findViewById<TextView>(R.id.result_view)
+        val qrDesc= findViewById<TextView>(R.id.qr_desc)
         val imageCode: ImageView = findViewById(R.id.imageCode)
 
         timeTakenView = findViewById(R.id.time_taken)
@@ -57,7 +59,7 @@ class EncryptActivity : AppCompatActivity() {
             isInPreviewMode = !isInPreviewMode
             val isEditable = isInPreviewMode
             textEdit.isEnabled = isEditable
-            saltEdit.isEnabled = isEditable
+            metadataEdit.isEnabled = isEditable
             passphraseEdit.isEnabled = isEditable
             iterationCountEdit.isEnabled = isEditable
             //encryptButton.isEnabled = isEditable
@@ -75,18 +77,17 @@ class EncryptActivity : AppCompatActivity() {
 
         encryptButton.setOnClickListener {
             val textToEncrypt = textEdit.text.toString()
-            val salt = saltEdit.text.toString()
+            val metadata = metadataEdit.text.toString()
             val passphrase = passphraseEdit.text.toString()
             val iterationCount = iterationCountEdit.text.toString()
 
-            if (textToEncrypt.isNotEmpty() && salt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
+            if (textToEncrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
                 showDialog()
                 GlobalScope.launch {
 
                     var encryptedText = "did not work"
                     withContext(Dispatchers.IO) {
-                        aes.initKeyAndIvFromPassphrase(passphrase, salt, iterationCount.toInt())
-                        encryptedText = aes.encrypt(textToEncrypt)
+                        encryptedText = aes.encrypt(passphrase, iterationCount.toInt(), textToEncrypt, metadata)
                     }
 
                     withContext(Dispatchers.Main) {
@@ -94,6 +95,7 @@ class EncryptActivity : AppCompatActivity() {
                         closeDialog()
                         showTimeTaken()
                         showQRCode(imageCode, encryptedText)
+                        qrDesc.text =  "Metadata: "+metadata
                     }
                 }
             }
@@ -101,35 +103,46 @@ class EncryptActivity : AppCompatActivity() {
 
         decryptButton.setOnClickListener {
             val textToDecrypt = textEdit.text.toString()
-            val salt = saltEdit.text.toString()
             val passphrase = passphraseEdit.text.toString()
             val iterationCount = iterationCountEdit.text.toString()
 
-            if (textToDecrypt.isNotEmpty() && salt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
+            if (textToDecrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
                 showDialog()
 
                 GlobalScope.launch {
 
-                    var decryptedText = ""
+                    var decryptedWrapper = AESEncryption3.DecryptedWrapperData("Error","")
 
                     withContext(Dispatchers.IO) {
-                        aes.initKeyAndIvFromPassphrase(passphrase, salt, iterationCount.toInt())
-                        decryptedText = try {
-                            aes.decrypt(textToDecrypt)
+                        decryptedWrapper = try {
+                            aes.decrypt(passphrase, iterationCount.toInt(), textToDecrypt)
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            e.stackTrace.toString()
+                            decryptedWrapper
                         }
                     }
 
                     withContext(Dispatchers.Main) {
-                        resultView.text = decryptedText
+                        resultView.text = decryptedWrapper.decryptedText
                         closeDialog()
                         showTimeTaken()
-                        showQRCode(imageCode, decryptedText)
+                        showQRCode(imageCode, decryptedWrapper.decryptedText)
+                        qrDesc.text = "Metadata: "+decryptedWrapper.metaData
                     }
                 }
             }
+        }
+
+        clearButton.setOnClickListener {
+            aes = AESEncryption3()
+            textEdit.setText("")
+            passphraseEdit.setText("")
+            metadataEdit.setText("")
+            iterationCountEdit.setText("")
+            timeTakenView.text = ""
+            resultView.text = ""
+            qrDesc.text = ""
+            imageCode.setImageBitmap(null)
         }
     }
 
@@ -154,18 +167,6 @@ class EncryptActivity : AppCompatActivity() {
         mProgressDialog = ProgressDialog(this)
         mProgressDialog.setMessage("Please wait...")
         mProgressDialog.setCancelable(false)
-
-//        val startTime = System.currentTimeMillis()
-//        timerHandler = Handler()
-//        timeRunnable = object : Runnable {
-//            override fun run() {
-//                val currentTime = System.currentTimeMillis()
-//                val elapsedTime = (currentTime - startTime) / 1000 // Convert to seconds
-//                mProgressDialog.setMessage("$elapsedTime seconds elapsed")
-//                timerHandler.postDelayed(this, 1000)
-//            }
-//        }
-//        timerHandler.post(timeRunnable)
     }
 
 

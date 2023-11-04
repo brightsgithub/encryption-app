@@ -47,25 +47,25 @@
 
 
         <TextView
-        android:id="@+id/salt_prompt"
+        android:id="@+id/metadata_prompt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Enter Salt:"
+        android:text="Enter Metadata:"
         android:textSize="24sp"
         android:textStyle="bold"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp" />
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/salt_input_layout"
+        android:id="@+id/metadata_input_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Salt"
+        android:hint="Metadata"
         app:boxStrokeColor="@color/purple_500"
         app:counterEnabled="true">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/salt_edit"
+            android:id="@+id/metadata_edit"
             android:inputType="textNoSuggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -142,6 +142,10 @@
             android:layout_width="60dp"
             android:layout_height="60dp"/>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -152,7 +156,7 @@
             android:id="@+id/preview_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Preview"
+            android:text="Lock"
             android:textColor="@color/white"
             android:backgroundTint="@color/purple_500"
             android:layout_weight="1"
@@ -180,6 +184,17 @@
 
     </LinearLayout>
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/clear_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Clear"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/teal_700"
+                android:layout_weight="1"
+                android:layout_gravity="right"
+                android:layout_marginLeft="8dp"/>
+        </LinearLayout>
     <TextView
         android:id="@+id/result_prompt"
         android:layout_width="wrap_content"
@@ -236,13 +251,16 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"/>
         </RelativeLayout>
-
+        <TextView
+            android:id="@+id/qr_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textIsSelectable="true"
+            android:layout_gravity="center_horizontal"
+            />
 
     </LinearLayout>
-
-
-
-
 
 </ScrollView>
 

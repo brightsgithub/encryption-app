@@ -16,6 +16,7 @@ class MainActivity : AppCompatActivity() {
         val encryptButton = findViewById<Button>(R.id.encryption_button)
         val hashingButton = findViewById<Button>(R.id.hashing_button)
 
+
         encryptButton.setOnClickListener {
             startActivity(Intent(this, EncryptActivity::class.java))
         }
@@ -23,7 +24,6 @@ class MainActivity : AppCompatActivity() {
         hashingButton.setOnClickListener {
             startActivity(Intent(this, HashTextActivity::class.java))
         }
-
     }
 }
 
