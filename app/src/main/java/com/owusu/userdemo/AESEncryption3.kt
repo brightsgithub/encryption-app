@@ -1,7 +1,9 @@
 package com.owusu.userdemo
 
 import android.security.keystore.KeyProperties
-import org.json.JSONObject
+import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.security.SecureRandom
 import java.security.spec.KeySpec
 import java.util.*
@@ -74,7 +76,12 @@ import javax.crypto.spec.SecretKeySpec
  */
 class AESEncryption3 {
 
-    fun encrypt(passphrase: String, iterationCount: Int, plainText: String, metadata: String?): String {
+    fun encrypt(
+        passphrase: String,
+        iterationCount: Int,
+        plainText: String,
+        metadata: String?
+    ): String {
         val salt = generateRandomSalt() // Generate a random salt
         val key = createSecretKeySpec(passphrase, iterationCount, salt)
         val ivParameterSpec = getIVSecureRandom(TRANSFORMATION)
@@ -83,36 +90,40 @@ class AESEncryption3 {
         cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec)
         val encryptedBytes = cipher.doFinal(plainText.toByteArray())
 
+        val moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+        val jsonAdapter: JsonAdapter<PayLoad> = moshi.adapter(PayLoad::class.java)
+
         // Combine the IV, salt, and the encrypted data
-        val ivSaltAndData = ByteArray(ivParameterSpec.iv.size + salt.size + encryptedBytes.size)
-        System.arraycopy(ivParameterSpec.iv, 0, ivSaltAndData, 0, ivParameterSpec.iv.size)
-        System.arraycopy(salt, 0, ivSaltAndData, ivParameterSpec.iv.size, salt.size)
-        System.arraycopy(encryptedBytes, 0, ivSaltAndData, ivParameterSpec.iv.size + salt.size, encryptedBytes.size)
+        val encryptedData = PayLoad(
+            iv = Base64.getEncoder().encodeToString(ivParameterSpec.iv),
+            data = Base64.getEncoder().encodeToString(encryptedBytes),
+            salt = Base64.getEncoder().encodeToString(salt),
+            metadata = metadata
+        )
 
-        // Create a JSON object to hold the IV, salt, and the encrypted data
-        val json = JSONObject()
-        json.put("iv", Base64.getEncoder().encodeToString(ivParameterSpec.iv))
-        json.put("salt", Base64.getEncoder().encodeToString(salt))
-        json.put("data", Base64.getEncoder().encodeToString(encryptedBytes))
-        if (metadata!= null && metadata.trim().isNotEmpty()) {
-            json.put("metadata", metadata)
-        }
-
-        return json.toString()
+        // Serialize the PayLoad object to JSON
+        return jsonAdapter.toJson(encryptedData)
     }
 
     fun decrypt(passphrase: String, iterationCount: Int, cipherText: String): DecryptedWrapperData {
-        val json = JSONObject(cipherText)
-        val iv = Base64.getDecoder().decode(json.getString("iv"))
-        val salt = Base64.getDecoder().decode(json.getString("salt"))
-        val encryptedData = Base64.getDecoder().decode(json.getString("data"))
-        val metadata = json.getString("metadata")
+        // Create a JsonAdapter for EncryptedData
+        val moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+        val adapter: JsonAdapter<PayLoad> = moshi.adapter(PayLoad::class.java)
+
+        // Deserialize JSON into EncryptedData
+        val encryptedData = adapter.fromJson(cipherText)
+
+        val iv = Base64.getDecoder().decode(encryptedData?.iv)
+        val salt = Base64.getDecoder().decode(encryptedData?.salt)
+        val encryptedBytes = Base64.getDecoder().decode(encryptedData?.data)
+        val metadata = encryptedData?.metadata
         val key = createSecretKeySpec(passphrase, iterationCount, salt)
 
         val ivParameterSpec = IvParameterSpec(iv)
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.DECRYPT_MODE, key, ivParameterSpec)
-        val decryptedBytes = cipher.doFinal(encryptedData)
+        val decryptedBytes = cipher.doFinal(encryptedBytes)
+
         return DecryptedWrapperData(decryptedText = String(decryptedBytes), metaData = metadata)
     }
 
@@ -129,7 +140,7 @@ class AESEncryption3 {
         private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
         private const val BLOCK_MODE = KeyProperties.BLOCK_MODE_CBC
         private const val PADDING = KeyProperties.ENCRYPTION_PADDING_PKCS7
-        //private const val PADDING = "PKCS5Padding"
+        // private const val PADDING = "PKCS5Padding" works with unit tests but stick to 7 and use androidTest
         private const val TRANSFORMATION = "$ALGORITHM/$BLOCK_MODE/$PADDING"
         private fun getIVSecureRandom(algorithm: String): IvParameterSpec {
             val random = SecureRandom.getInstanceStrong()
@@ -147,4 +158,11 @@ class AESEncryption3 {
     }
 
     data class DecryptedWrapperData(val decryptedText: String, val metaData: String?)
+
+    data class PayLoad(
+        val iv: String,
+        val data: String,
+        val salt: String,
+        val metadata: String?
+    )
 }
