@@ -194,6 +194,13 @@
                 android:layout_weight="1"
                 android:layout_gravity="right"
                 android:layout_marginLeft="8dp"/>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/should_display_qr_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Display QR Code"
+                />
         </LinearLayout>
     <TextView
         android:id="@+id/result_prompt"

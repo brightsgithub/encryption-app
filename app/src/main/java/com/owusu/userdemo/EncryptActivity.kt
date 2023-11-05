@@ -9,6 +9,7 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -32,6 +33,7 @@ class EncryptActivity : AppCompatActivity() {
     private lateinit var startTime: String
     private lateinit var endTime: String
     private lateinit var timeTakenView: TextView
+    private lateinit var displayQRCodeSwitch: SwitchCompat
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +41,7 @@ class EncryptActivity : AppCompatActivity() {
         myDateUtils = MyDateUtils.getInstance()
         setContentView(R.layout.activity_encrypt)
         initProgressDialog()
+        displayQRCodeSwitch = findViewById(R.id.should_display_qr_switch)
         val previewBtn = findViewById<Button>(R.id.preview_btn)
         val lockOpenImg = findViewById<ImageView>(R.id.lock_open)
         val lockedImg = findViewById<ImageView>(R.id.locked)
@@ -150,16 +153,18 @@ class EncryptActivity : AppCompatActivity() {
      * QR Code has a limited size of text it can take
      */
     private fun showQRCode(imageCode: ImageView, text: String) {
-        //initializing MultiFormatWriter for QR code
-        val mWriter = MultiFormatWriter()
-        try {
-            //BitMatrix class to encode entered text and set Width & Height
-            val mMatrix: BitMatrix = mWriter.encode(text, BarcodeFormat.QR_CODE, 1200, 1200)
-            val mEncoder = BarcodeEncoder()
-            val mBitmap: Bitmap = mEncoder.createBitmap(mMatrix) //creating bitmap of code
-            imageCode.setImageBitmap(mBitmap) //Setting generated QR code to imageView
-        } catch (e: WriterException) {
-            e.printStackTrace()
+        if (displayQRCodeSwitch.isChecked) {
+            //initializing MultiFormatWriter for QR code
+            val mWriter = MultiFormatWriter()
+            try {
+                //BitMatrix class to encode entered text and set Width & Height
+                val mMatrix: BitMatrix = mWriter.encode(text, BarcodeFormat.QR_CODE, 1200, 1200)
+                val mEncoder = BarcodeEncoder()
+                val mBitmap: Bitmap = mEncoder.createBitmap(mMatrix) //creating bitmap of code
+                imageCode.setImageBitmap(mBitmap) //Setting generated QR code to imageView
+            } catch (e: WriterException) {
+                e.printStackTrace()
+            }
         }
     }
 
