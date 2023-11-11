@@ -203,7 +203,7 @@ class EncryptActivity : AppCompatActivity() {
             val qrImageView = dialog.findViewById<ImageView>(R.id.qrCodeImageView)
             val qrDescTextView = dialog.findViewById<TextView>(R.id.qrDescTextView)
             val closeButton = dialog.findViewById<MaterialButton>(R.id.closeButton)
-            closeButton.visibility = View.GONE
+
             qrImageView.setOnClickListener {
                 if (closeButton.isVisible) {
                     closeButton.visibility = View.GONE
@@ -273,7 +273,7 @@ class EncryptActivity : AppCompatActivity() {
                 "com.owusu.userdemo:WakeLockTag"
             )
             wakeLock?.acquire()
-            Toast.makeText(this, "Using WakeLock", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Using WakeLock", Toast.LENGTH_SHORT).show()
         } catch (e: java.lang.Exception) {
             Toast.makeText(this, "acquireWakeLock Error", Toast.LENGTH_SHORT).show()
         }
@@ -282,7 +282,7 @@ class EncryptActivity : AppCompatActivity() {
     private fun releaseWakeLock() {
         try {
             wakeLock?.release()
-            Toast.makeText(this, "WakeLock released", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "WakeLock released", Toast.LENGTH_SHORT).show()
         }catch (e: java.lang.Exception) {
             Toast.makeText(this, "releaseWakeLock Error", Toast.LENGTH_SHORT).show()
         }
