@@ -1,15 +1,21 @@
 package com.owusu.userdemo
 
+import android.app.Dialog
 import android.app.ProgressDialog
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
+import android.os.PowerManager
 import android.view.View
-import android.view.inputmethod.InputMethodManager
+import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
+import androidx.core.view.isVisible
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -22,8 +28,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 
+
 class EncryptActivity : AppCompatActivity() {
 
+    private var _data: String? = ""
+    private var _metadata: String? = ""
     private  lateinit var aes: AESEncryption3
     private lateinit var mProgressDialog: ProgressDialog
     lateinit var timerHandler : Handler
@@ -33,18 +42,21 @@ class EncryptActivity : AppCompatActivity() {
     private lateinit var startTime: String
     private lateinit var endTime: String
     private lateinit var timeTakenView: TextView
-    private lateinit var displayQRCodeSwitch: SwitchCompat
-
+    private lateinit var displayQRCodeSwitch: Button
+    private lateinit var mainContainer: View
+    private var wakeLock: PowerManager.WakeLock? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         aes = AESEncryption3()
         myDateUtils = MyDateUtils.getInstance()
         setContentView(R.layout.activity_encrypt)
         initProgressDialog()
-        displayQRCodeSwitch = findViewById(R.id.should_display_qr_switch)
-        val previewBtn = findViewById<Button>(R.id.preview_btn)
+        displayQRCodeSwitch = findViewById(R.id.showQRPopUp)
+
         val lockOpenImg = findViewById<ImageView>(R.id.lock_open)
         val lockedImg = findViewById<ImageView>(R.id.locked)
+        val lockIconContainer = findViewById<View>(R.id.lockIconContainer)
         val textEdit = findViewById<EditText>(R.id.text_edit)
         val metadataEdit = findViewById<TextInputEditText>(R.id.metadata_edit)
         val passphraseEdit = findViewById<TextInputEditText>(R.id.passphrase_edit)
@@ -57,16 +69,18 @@ class EncryptActivity : AppCompatActivity() {
         val imageCode: ImageView = findViewById(R.id.imageCode)
 
         timeTakenView = findViewById(R.id.time_taken)
+        mainContainer = findViewById(R.id.mainContainer)
 
-        previewBtn.setOnClickListener {
+        lockIconContainer.setOnClickListener {
             isInPreviewMode = !isInPreviewMode
             val isEditable = isInPreviewMode
             textEdit.isEnabled = isEditable
             metadataEdit.isEnabled = isEditable
             passphraseEdit.isEnabled = isEditable
             iterationCountEdit.isEnabled = isEditable
-            //encryptButton.isEnabled = isEditable
-            //decryptButton.isEnabled = isEditable
+            encryptButton.isEnabled = isEditable
+            decryptButton.isEnabled = isEditable
+            clearButton.isEnabled = isEditable
             if(!isEditable) {
                 Toast.makeText(this, "Locked", Toast.LENGTH_SHORT).show()
                 lockOpenImg.visibility = View.GONE
@@ -96,9 +110,11 @@ class EncryptActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         resultView.text = encryptedText
                         closeDialog()
+                        lockIconContainer.performClick()
                         showTimeTaken()
-                        showQRCode(imageCode, encryptedText)
-                        qrDesc.text =  "Metadata: "+metadata
+                        qrDesc.text =  metadata
+                        _data = encryptedText
+                        _metadata = metadata
                     }
                 }
             }
@@ -128,9 +144,11 @@ class EncryptActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         resultView.text = decryptedWrapper.decryptedText
                         closeDialog()
+                        lockIconContainer.performClick()
                         showTimeTaken()
-                        showQRCode(imageCode, decryptedWrapper.decryptedText)
-                        qrDesc.text = "Metadata: "+decryptedWrapper.metaData
+                        qrDesc.text = decryptedWrapper.metaData
+                        _data = decryptedWrapper.decryptedText
+                        _metadata = decryptedWrapper.metaData
                     }
                 }
             }
@@ -146,6 +164,12 @@ class EncryptActivity : AppCompatActivity() {
             resultView.text = ""
             qrDesc.text = ""
             imageCode.setImageBitmap(null)
+            _data = null
+            _metadata = null
+        }
+
+        displayQRCodeSwitch.setOnClickListener {
+            showQRCodePopup(_data, _metadata)
         }
     }
 
@@ -153,18 +177,69 @@ class EncryptActivity : AppCompatActivity() {
      * QR Code has a limited size of text it can take
      */
     private fun showQRCode(imageCode: ImageView, text: String) {
-        if (displayQRCodeSwitch.isChecked) {
-            //initializing MultiFormatWriter for QR code
-            val mWriter = MultiFormatWriter()
-            try {
-                //BitMatrix class to encode entered text and set Width & Height
-                val mMatrix: BitMatrix = mWriter.encode(text, BarcodeFormat.QR_CODE, 1200, 1200)
-                val mEncoder = BarcodeEncoder()
-                val mBitmap: Bitmap = mEncoder.createBitmap(mMatrix) //creating bitmap of code
-                imageCode.setImageBitmap(mBitmap) //Setting generated QR code to imageView
-            } catch (e: WriterException) {
-                e.printStackTrace()
+        //initializing MultiFormatWriter for QR code
+        val mWriter = MultiFormatWriter()
+        try {
+            //BitMatrix class to encode entered text and set Width & Height
+            val mMatrix: BitMatrix = mWriter.encode(text, BarcodeFormat.QR_CODE, 800, 800)
+            val mEncoder = BarcodeEncoder()
+            val mBitmap: Bitmap = mEncoder.createBitmap(mMatrix) //creating bitmap of code
+            imageCode.setImageBitmap(mBitmap) //Setting generated QR code to imageView
+        } catch (e: WriterException) {
+            e.printStackTrace()
+        }
+    }
+    private fun showQRCodePopup(text: String?, metadata: String?) {
+        if (text == null) return
+
+        try {
+            //val dialog = Dialog(this)
+            // .Theme_Translucent_NoTitleBar, which provides a translucent background without any title bar or shadow.
+            // This should give the appearance of a regular layout without dialog features.
+            val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+
+            dialog.setContentView(R.layout.qr_code_popup)
+            dialog.setCancelable(false)
+            val qrImageView = dialog.findViewById<ImageView>(R.id.qrCodeImageView)
+            val qrDescTextView = dialog.findViewById<TextView>(R.id.qrDescTextView)
+            val closeButton = dialog.findViewById<MaterialButton>(R.id.closeButton)
+            closeButton.visibility = View.GONE
+            qrImageView.setOnClickListener {
+                if (closeButton.isVisible) {
+                    closeButton.visibility = View.GONE
+                } else {
+                    closeButton.visibility = View.VISIBLE
+                }
             }
+
+            showQRCode(qrImageView, text)
+
+            qrDescTextView.text = metadata
+
+            // removes the dark gradient behind
+            val window: Window? = dialog.window
+            window?.setFlags(
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+            )
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            // Set a percentage of screen width for the dialog (adjust as needed)
+            val screenWidth = resources.displayMetrics.widthPixels
+            val dialogWidth = (screenWidth * 0.8).toInt()
+            dialog.window?.setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+            closeButton.setOnClickListener {
+                dialog.dismiss()
+                mainContainer.visibility = View.VISIBLE
+                supportActionBar?.show()
+            }
+
+            dialog.show()
+            Toast.makeText(this, "Tap QR to show/hide Close button", Toast.LENGTH_SHORT).show()
+            supportActionBar?.hide()
+            mainContainer.visibility = View.INVISIBLE
+        } catch (ex: java.lang.Exception) {
+            Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -178,14 +253,39 @@ class EncryptActivity : AppCompatActivity() {
     fun closeDialog() {
         mProgressDialog.cancel()
         endTime = getCurrentTime()
+        releaseWakeLock()
     }
 
     /**
      * Show progress dialog to user.
      */
     fun showDialog() {
+        acquireWakeLock()
         startTime = getCurrentTime()
         mProgressDialog.show()
+    }
+
+    private fun acquireWakeLock() {
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "com.owusu.userdemo:WakeLockTag"
+            )
+            wakeLock?.acquire()
+            Toast.makeText(this, "Using WakeLock", Toast.LENGTH_LONG).show()
+        } catch (e: java.lang.Exception) {
+            Toast.makeText(this, "acquireWakeLock Error", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.release()
+            Toast.makeText(this, "WakeLock released", Toast.LENGTH_LONG).show()
+        }catch (e: java.lang.Exception) {
+            Toast.makeText(this, "releaseWakeLock Error", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun showTimeTaken() {
@@ -195,5 +295,9 @@ class EncryptActivity : AppCompatActivity() {
 
     private fun getCurrentTime(): String {
         return myDateUtils.convertDateToFormattedStringWithTime(Calendar.getInstance().timeInMillis)
+    }
+
+    override fun onBackPressed() {
+        // Do nothing.
     }
 }

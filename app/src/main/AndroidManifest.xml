@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.owusu.userdemo">
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -15,6 +17,7 @@
         tools:targetApi="31">
         <activity
             android:name="com.owusu.userdemo.MainActivity"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,8 +25,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.owusu.userdemo.EncryptActivity"/>
-        <activity android:name="com.owusu.userdemo.HashTextActivity"/>
+        <activity android:name="com.owusu.userdemo.EncryptActivity" android:screenOrientation="portrait" />
+        <activity android:name="com.owusu.userdemo.HashTextActivity" android:screenOrientation="portrait"/>
     </application>
 
 </manifest>
