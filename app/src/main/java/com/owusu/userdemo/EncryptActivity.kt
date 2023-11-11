@@ -5,6 +5,7 @@ import android.app.ProgressDialog
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.PowerManager
@@ -28,6 +29,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 
+/**
+ * adb -s 16081FDD4002TK uninstall com.owusu.userdemo; adb -s 52033501faab14e1 uninstall com.owusu.userdemo; adb -s emulator-5556 uninstall com.owusu.userdemo
+ */
 
 class EncryptActivity : AppCompatActivity() {
 
@@ -51,12 +55,16 @@ class EncryptActivity : AppCompatActivity() {
     private lateinit var iterationCountEditConfirm: TextInputEditText
     private lateinit var textEdit: EditText
     private lateinit var metadataEdit: EditText
+    private lateinit var resultView: TextView
 
+    private var mediaPlayer: MediaPlayer? = null
     private var wakeLock: PowerManager.WakeLock? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         aes = AESEncryption3()
+        // Initialize MediaPlayer with the MP3 file
+        mediaPlayer = MediaPlayer.create(this, R.raw.bell);
         myDateUtils = MyDateUtils.getInstance()
         setContentView(R.layout.activity_encrypt)
         initProgressDialog()
@@ -74,7 +82,7 @@ class EncryptActivity : AppCompatActivity() {
         val encryptButton = findViewById<Button>(R.id.encrypt_button)
         val decryptButton = findViewById<Button>(R.id.decrypt_button)
         val clearButton = findViewById<Button>(R.id.clear_button)
-        val resultView = findViewById<TextView>(R.id.result_view)
+        resultView = findViewById(R.id.result_view)
         val qrDesc= findViewById<TextView>(R.id.qr_desc)
         val imageCode: ImageView = findViewById(R.id.imageCode)
 
@@ -121,6 +129,7 @@ class EncryptActivity : AppCompatActivity() {
             if (areAllFieldsValid) {
                 if (textToEncrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
                     showDialog()
+                    lockIconContainer.performClick()
                     GlobalScope.launch {
 
                         var encryptedText = "did not work"
@@ -131,7 +140,7 @@ class EncryptActivity : AppCompatActivity() {
                         withContext(Dispatchers.Main) {
                             resultView.text = encryptedText
                             closeDialog()
-                            lockIconContainer.performClick()
+                            playSound()
                             showTimeTaken()
                             qrDesc.text =  metadata
                             _data = encryptedText
@@ -156,7 +165,7 @@ class EncryptActivity : AppCompatActivity() {
             if (areAllFieldsValid) {
                 if (textToDecrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
                     showDialog()
-
+                    lockIconContainer.performClick()
                     GlobalScope.launch {
 
                         var decryptedWrapper = AESEncryption3.DecryptedWrapperData("Error","")
@@ -173,7 +182,7 @@ class EncryptActivity : AppCompatActivity() {
                         withContext(Dispatchers.Main) {
                             resultView.text = decryptedWrapper.decryptedText
                             closeDialog()
-                            lockIconContainer.performClick()
+                            playSound()
                             showTimeTaken()
                             qrDesc.text = decryptedWrapper.metaData
                             _data = decryptedWrapper.decryptedText
@@ -203,7 +212,12 @@ class EncryptActivity : AppCompatActivity() {
         }
     }
 
+    private fun playSound() {
+        mediaPlayer?.start();
+    }
+
     private fun hideSensitiveInfo() {
+        resultView.visibility = View.INVISIBLE
         metadataEdit.visibility = View.INVISIBLE
         textEdit.visibility = View.INVISIBLE
         passphraseEdit.visibility = View.INVISIBLE
@@ -213,6 +227,7 @@ class EncryptActivity : AppCompatActivity() {
     }
 
     private fun showSensitiveInfo() {
+        resultView.visibility = View.VISIBLE
         metadataEdit.visibility = View.VISIBLE
         textEdit.visibility = View.VISIBLE
         passphraseEdit.visibility = View.VISIBLE
@@ -361,5 +376,14 @@ class EncryptActivity : AppCompatActivity() {
 
     override fun onBackPressed() {
         // Do nothing.
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Release resources when the activity is destroyed
+        if (mediaPlayer != null) {
+            mediaPlayer!!.release()
+            mediaPlayer = null
+        }
     }
 }
