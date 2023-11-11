@@ -7,8 +7,8 @@
         <type value="RUNNING_DEVICE_TARGET" />
         <deviceKey>
           <Key>
-            <type value="VIRTUAL_DEVICE_PATH" />
-            <value value="$USER_HOME$/.android/avd/Pixel_C_API_33.avd" />
+            <type value="SERIAL_NUMBER" />
+            <value value="52033501faab14e1" />
           </Key>
         </deviceKey>
       </Target>
@@ -16,8 +16,8 @@
         <type value="RUNNING_DEVICE_TARGET" />
         <deviceKey>
           <Key>
-            <type value="SERIAL_NUMBER" />
-            <value value="52033501faab14e1" />
+            <type value="VIRTUAL_DEVICE_PATH" />
+            <value value="$USER_HOME$/.android/avd/Pixel_C_API_33.avd" />
           </Key>
         </deviceKey>
       </Target>

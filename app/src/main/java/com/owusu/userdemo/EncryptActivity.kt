@@ -44,6 +44,14 @@ class EncryptActivity : AppCompatActivity() {
     private lateinit var timeTakenView: TextView
     private lateinit var displayQRCodeSwitch: Button
     private lateinit var mainContainer: View
+
+    private lateinit var passphraseEdit: TextInputEditText
+    private lateinit var passphraseEditConfirm: TextInputEditText
+    private lateinit var iterationCountEdit: TextInputEditText
+    private lateinit var iterationCountEditConfirm: TextInputEditText
+    private lateinit var textEdit: EditText
+    private lateinit var metadataEdit: EditText
+
     private var wakeLock: PowerManager.WakeLock? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,10 +65,12 @@ class EncryptActivity : AppCompatActivity() {
         val lockOpenImg = findViewById<ImageView>(R.id.lock_open)
         val lockedImg = findViewById<ImageView>(R.id.locked)
         val lockIconContainer = findViewById<View>(R.id.lockIconContainer)
-        val textEdit = findViewById<EditText>(R.id.text_edit)
-        val metadataEdit = findViewById<TextInputEditText>(R.id.metadata_edit)
-        val passphraseEdit = findViewById<TextInputEditText>(R.id.passphrase_edit)
-        val iterationCountEdit = findViewById<TextInputEditText>(R.id.iteration_count_edit)
+        textEdit = findViewById(R.id.text_edit)
+        metadataEdit = findViewById<TextInputEditText>(R.id.metadata_edit)
+        passphraseEdit = findViewById(R.id.passphrase_edit)
+        passphraseEditConfirm = findViewById(R.id.passphrase_edit_confirm)
+        iterationCountEdit = findViewById(R.id.iteration_count_edit)
+        iterationCountEditConfirm = findViewById(R.id.iteration_count_edit_confirm)
         val encryptButton = findViewById<Button>(R.id.encrypt_button)
         val decryptButton = findViewById<Button>(R.id.decrypt_button)
         val clearButton = findViewById<Button>(R.id.clear_button)
@@ -77,15 +87,19 @@ class EncryptActivity : AppCompatActivity() {
             textEdit.isEnabled = isEditable
             metadataEdit.isEnabled = isEditable
             passphraseEdit.isEnabled = isEditable
+            passphraseEditConfirm.isEnabled = isEditable
             iterationCountEdit.isEnabled = isEditable
+            iterationCountEditConfirm.isEnabled = isEditable
             encryptButton.isEnabled = isEditable
             decryptButton.isEnabled = isEditable
             clearButton.isEnabled = isEditable
             if(!isEditable) {
+                hideSensitiveInfo()
                 Toast.makeText(this, "Locked", Toast.LENGTH_SHORT).show()
                 lockOpenImg.visibility = View.GONE
                 lockedImg.visibility = View.VISIBLE
             } else {
+                showSensitiveInfo()
                 Toast.makeText(this, "Unlocked", Toast.LENGTH_SHORT).show()
                 lockOpenImg.visibility = View.VISIBLE
                 lockedImg.visibility = View.GONE
@@ -96,25 +110,33 @@ class EncryptActivity : AppCompatActivity() {
             val textToEncrypt = textEdit.text.toString()
             val metadata = metadataEdit.text.toString()
             val passphrase = passphraseEdit.text.toString()
+            val passphraseConfirm = passphraseEditConfirm.text.toString()
             val iterationCount = iterationCountEdit.text.toString()
+            val iterationCountConfirm = iterationCountEditConfirm.text.toString()
 
-            if (textToEncrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
-                showDialog()
-                GlobalScope.launch {
+            val doesPassPhraseMatch = doFieldsMatch(passphrase, passphraseConfirm, "Passphrase")
+            val doesIterationCountMatch = doFieldsMatch(iterationCount, iterationCountConfirm, "iteration count")
+            val areAllFieldsValid = doesPassPhraseMatch && doesIterationCountMatch
 
-                    var encryptedText = "did not work"
-                    withContext(Dispatchers.IO) {
-                        encryptedText = aes.encrypt(passphrase, iterationCount.toInt(), textToEncrypt, metadata)
-                    }
+            if (areAllFieldsValid) {
+                if (textToEncrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
+                    showDialog()
+                    GlobalScope.launch {
 
-                    withContext(Dispatchers.Main) {
-                        resultView.text = encryptedText
-                        closeDialog()
-                        lockIconContainer.performClick()
-                        showTimeTaken()
-                        qrDesc.text =  metadata
-                        _data = encryptedText
-                        _metadata = metadata
+                        var encryptedText = "did not work"
+                        withContext(Dispatchers.IO) {
+                            encryptedText = aes.encrypt(passphrase, iterationCount.toInt(), textToEncrypt, metadata)
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            resultView.text = encryptedText
+                            closeDialog()
+                            lockIconContainer.performClick()
+                            showTimeTaken()
+                            qrDesc.text =  metadata
+                            _data = encryptedText
+                            _metadata = metadata
+                        }
                     }
                 }
             }
@@ -123,32 +145,40 @@ class EncryptActivity : AppCompatActivity() {
         decryptButton.setOnClickListener {
             val textToDecrypt = textEdit.text.toString()
             val passphrase = passphraseEdit.text.toString()
+            val passphraseConfirm = passphraseEditConfirm.text.toString()
             val iterationCount = iterationCountEdit.text.toString()
+            val iterationCountConfirm = iterationCountEditConfirm.text.toString()
 
-            if (textToDecrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
-                showDialog()
+            val doesPassPhraseMatch = doFieldsMatch(passphrase, passphraseConfirm, "Passphrase")
+            val doesIterationCountMatch = doFieldsMatch(iterationCount, iterationCountConfirm, "iteration count")
+            val areAllFieldsValid = doesPassPhraseMatch && doesIterationCountMatch
 
-                GlobalScope.launch {
+            if (areAllFieldsValid) {
+                if (textToDecrypt.isNotEmpty() && passphrase.isNotEmpty() && iterationCount.isNotEmpty()) {
+                    showDialog()
 
-                    var decryptedWrapper = AESEncryption3.DecryptedWrapperData("Error","")
+                    GlobalScope.launch {
 
-                    withContext(Dispatchers.IO) {
-                        decryptedWrapper = try {
-                            aes.decrypt(passphrase, iterationCount.toInt(), textToDecrypt)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            decryptedWrapper
+                        var decryptedWrapper = AESEncryption3.DecryptedWrapperData("Error","")
+
+                        withContext(Dispatchers.IO) {
+                            decryptedWrapper = try {
+                                aes.decrypt(passphrase, iterationCount.toInt(), textToDecrypt)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                decryptedWrapper
+                            }
                         }
-                    }
 
-                    withContext(Dispatchers.Main) {
-                        resultView.text = decryptedWrapper.decryptedText
-                        closeDialog()
-                        lockIconContainer.performClick()
-                        showTimeTaken()
-                        qrDesc.text = decryptedWrapper.metaData
-                        _data = decryptedWrapper.decryptedText
-                        _metadata = decryptedWrapper.metaData
+                        withContext(Dispatchers.Main) {
+                            resultView.text = decryptedWrapper.decryptedText
+                            closeDialog()
+                            lockIconContainer.performClick()
+                            showTimeTaken()
+                            qrDesc.text = decryptedWrapper.metaData
+                            _data = decryptedWrapper.decryptedText
+                            _metadata = decryptedWrapper.metaData
+                        }
                     }
                 }
             }
@@ -170,6 +200,38 @@ class EncryptActivity : AppCompatActivity() {
 
         displayQRCodeSwitch.setOnClickListener {
             showQRCodePopup(_data, _metadata)
+        }
+    }
+
+    private fun hideSensitiveInfo() {
+        metadataEdit.visibility = View.INVISIBLE
+        textEdit.visibility = View.INVISIBLE
+        passphraseEdit.visibility = View.INVISIBLE
+        passphraseEditConfirm.visibility = View.INVISIBLE
+        iterationCountEdit.visibility = View.INVISIBLE
+        iterationCountEditConfirm.visibility = View.INVISIBLE
+    }
+
+    private fun showSensitiveInfo() {
+        metadataEdit.visibility = View.VISIBLE
+        textEdit.visibility = View.VISIBLE
+        passphraseEdit.visibility = View.VISIBLE
+        passphraseEditConfirm.visibility = View.VISIBLE
+        iterationCountEdit.visibility = View.VISIBLE
+        iterationCountEditConfirm.visibility = View.VISIBLE
+    }
+
+    private fun doFieldsMatch(text1: String?, text2: String, fieldName: String): Boolean {
+        if(text1 == null || text2 == null) {
+            Toast.makeText(this, fieldName+ " Cannot be null", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return if(text1 == text2) {
+            true
+        } else {
+            Toast.makeText(this, fieldName+ " must match! ", Toast.LENGTH_SHORT).show()
+            false
         }
     }
 
