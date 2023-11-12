@@ -3,6 +3,7 @@ package com.owusu.userdemo
 import android.app.Dialog
 import android.app.ProgressDialog
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.media.MediaPlayer
@@ -14,6 +15,7 @@ import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
 import android.widget.*
+import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.google.android.material.button.MaterialButton
@@ -22,6 +24,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.WriterException
 import com.google.zxing.common.BitMatrix
+import com.google.zxing.integration.android.IntentIntegrator
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -82,12 +85,28 @@ class EncryptActivity : AppCompatActivity() {
         val encryptButton = findViewById<Button>(R.id.encrypt_button)
         val decryptButton = findViewById<Button>(R.id.decrypt_button)
         val clearButton = findViewById<Button>(R.id.clear_button)
+        val scanner = findViewById<ImageView>(R.id.scanner)
+
         resultView = findViewById(R.id.result_view)
         val qrDesc= findViewById<TextView>(R.id.qr_desc)
         val imageCode: ImageView = findViewById(R.id.imageCode)
 
         timeTakenView = findViewById(R.id.time_taken)
         mainContainer = findViewById(R.id.mainContainer)
+
+        scanner.setOnClickListener {
+            try {
+                // we need to create the object
+                // of IntentIntegrator class
+                // which is the class of QR library
+                val intentIntegrator = IntentIntegrator(this)
+                intentIntegrator.setOrientationLocked(true)
+                intentIntegrator.initiateScan()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show()
+            }
+        }
+
 
         lockIconContainer.setOnClickListener {
             isInPreviewMode = !isInPreviewMode
@@ -98,6 +117,7 @@ class EncryptActivity : AppCompatActivity() {
             passphraseEditConfirm.isEnabled = isEditable
             iterationCountEdit.isEnabled = isEditable
             iterationCountEditConfirm.isEnabled = isEditable
+            scanner.isEnabled = isEditable
             encryptButton.isEnabled = isEditable
             decryptButton.isEnabled = isEditable
             clearButton.isEnabled = isEditable
@@ -209,6 +229,24 @@ class EncryptActivity : AppCompatActivity() {
 
         displayQRCodeSwitch.setOnClickListener {
             showQRCodePopup(_data, _metadata)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, @Nullable data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+        // if the intentResult is null then
+        // toast a message as "cancelled"
+        if (intentResult != null) {
+            if (intentResult.contents == null) {
+                Toast.makeText(baseContext, "Cancelled", Toast.LENGTH_SHORT).show()
+            } else {
+                // if the intentResult is not null we'll set
+                // the content and format of scan message
+                textEdit.setText(intentResult.contents)
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
