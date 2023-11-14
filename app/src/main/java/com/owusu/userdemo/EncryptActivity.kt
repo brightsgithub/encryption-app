@@ -2,14 +2,19 @@ package com.owusu.userdemo
 
 import android.app.Dialog
 import android.app.ProgressDialog
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.PowerManager
+import android.provider.MediaStore
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -30,6 +35,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
+import java.text.SimpleDateFormat
 import java.util.*
 
 /**
@@ -217,8 +226,10 @@ class EncryptActivity : AppCompatActivity() {
             aes = AESEncryption3()
             textEdit.setText("")
             passphraseEdit.setText("")
+            passphraseEditConfirm.setText("")
             metadataEdit.setText("")
             iterationCountEdit.setText("")
+            iterationCountEditConfirm.setText("")
             timeTakenView.text = ""
             resultView.text = ""
             qrDesc.text = ""
@@ -318,12 +329,23 @@ class EncryptActivity : AppCompatActivity() {
             val qrImageView = dialog.findViewById<ImageView>(R.id.qrCodeImageView)
             val qrDescTextView = dialog.findViewById<TextView>(R.id.qrDescTextView)
             val closeButton = dialog.findViewById<MaterialButton>(R.id.closeButton)
+            val screenShot = dialog.findViewById<MaterialButton>(R.id.screenShot)
+            val highestParent = dialog.findViewById<View>(R.id.qrCodeViewMainContainer)
+
+            screenShot.setOnClickListener {
+                // takeScreenshot(this)
+                // Call the takeScreenshot function passing the dialog view
+                qrImageView.performClick()
+                takeScreenshotOfDialog(dialog.window!!.decorView.rootView, this)
+            }
 
             qrImageView.setOnClickListener {
                 if (closeButton.isVisible) {
                     closeButton.visibility = View.GONE
+                    screenShot.visibility = View.GONE
                 } else {
                     closeButton.visibility = View.VISIBLE
+                    screenShot.visibility = View.VISIBLE
                 }
             }
 
@@ -357,6 +379,94 @@ class EncryptActivity : AppCompatActivity() {
             Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun takeScreenshot(context: Context) {
+        val now = Date()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd_hh:mm:ss", Locale.getDefault())
+        val formattedDate = dateFormat.format(now)
+
+        try {
+            // Create a bitmap screen capture
+            val v1: View = window.decorView.rootView
+            v1.isDrawingCacheEnabled = true
+            val bitmap = Bitmap.createBitmap(v1.drawingCache)
+            v1.isDrawingCacheEnabled = false
+
+            // Using MediaStore to store the image
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, formattedDate)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+
+            val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            val imageUri = context.contentResolver.insert(collection, values)
+
+            imageUri?.let {
+                val outputStream: OutputStream? = context.contentResolver.openOutputStream(it)
+                outputStream?.use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                }
+                values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                context.contentResolver.update(it, values, null, null)
+
+                //openScreenshot(it)
+            }
+        } catch (e: Throwable) {
+            // Handle exceptions
+            e.printStackTrace()
+        }
+    }
+
+    private fun takeScreenshotOfDialog(view: View, context: Context) {
+        val now = Date()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd_hh:mm:ss", Locale.getDefault())
+        val formattedDate = dateFormat.format(now)
+
+        try {
+            // Create a bitmap screen capture
+            view.isDrawingCacheEnabled = true
+            val bitmap = Bitmap.createBitmap(view.drawingCache)
+            view.isDrawingCacheEnabled = false
+
+            // Using MediaStore to store the image
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, _metadata?:formattedDate)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+
+            val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            val imageUri = context.contentResolver.insert(collection, values)
+
+            imageUri?.let {
+                val outputStream = context.contentResolver.openOutputStream(it)
+                outputStream?.use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                }
+                values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                context.contentResolver.update(it, values, null, null)
+
+                openScreenshot(it)
+            }
+        } catch (e: Throwable) {
+            // Handle exceptions
+            e.printStackTrace()
+        }
+    }
+
+
+    private fun openScreenshot(imageUri: Uri) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(imageUri, "image/*")
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        startActivity(intent)
+    }
+
+
 
     private fun initProgressDialog() {
         mProgressDialog = ProgressDialog(this)

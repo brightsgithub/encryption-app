@@ -4,6 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/white"
+    android:id="@+id/qrCodeViewMainContainer"
     android:padding="16dp">
 
     <ImageView
@@ -28,6 +29,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Close"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/screenShot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Take Screenshot"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"/>
 </LinearLayout>
