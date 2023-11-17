@@ -38,6 +38,7 @@
                 android:hint="Text to encrypt/decrypt"
                 app:boxStrokeColor="@color/purple_500"
                 app:counterEnabled="true"
+                app:counterTextColor="@color/black"
                 app:hintTextColor="@color/orange">
 
                 <EditText

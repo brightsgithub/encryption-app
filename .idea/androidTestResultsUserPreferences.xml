@@ -80,6 +80,7 @@
               <option name="preferredColumnWidths">
                 <map>
                   <entry key="16081FDD4002TK" value="120" />
+                  <entry key="52033501faab14e1" value="120" />
                   <entry key="Amazon&#10; KFTRPWI" value="120" />
                   <entry key="Duration" value="90" />
                   <entry key="G001NW06131303HJ" value="120" />
@@ -90,6 +91,7 @@
                   <entry key="Pixel_C_API_33" value="120" />
                   <entry key="Status" value="80" />
                   <entry key="Tests" value="360" />
+                  <entry key="samsung&#10; SM-T580" value="120" />
                 </map>
               </option>
             </AndroidTestResultsTableState>
