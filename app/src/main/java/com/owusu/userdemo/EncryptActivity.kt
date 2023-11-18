@@ -1,5 +1,6 @@
 package com.owusu.userdemo
 
+import android.app.Activity
 import android.app.Dialog
 import android.app.ProgressDialog
 import android.content.ContentValues
@@ -7,7 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
-import android.graphics.Color
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -15,6 +16,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.PowerManager
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -25,27 +27,28 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.MultiFormatWriter
-import com.google.zxing.WriterException
+import com.google.zxing.*
 import com.google.zxing.common.BitMatrix
+import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.integration.android.IntentIntegrator
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
+import java.io.FileNotFoundException
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 /**
  * adb -s 16081FDD4002TK uninstall com.owusu.userdemo; adb -s 52033501faab14e1 uninstall com.owusu.userdemo; adb -s emulator-5556 uninstall com.owusu.userdemo
  */
 
 class EncryptActivity : AppCompatActivity() {
+
+    private val REQUEST_CODE_OPEN_FILE = 111
 
     private var _data: String? = ""
     private var _metadata: String? = ""
@@ -95,6 +98,7 @@ class EncryptActivity : AppCompatActivity() {
         val decryptButton = findViewById<Button>(R.id.decrypt_button)
         val clearButton = findViewById<Button>(R.id.clear_button)
         val scanner = findViewById<ImageView>(R.id.scanner)
+        val openImage = findViewById<ImageView>(R.id.openImage)
 
         resultView = findViewById(R.id.result_view)
         val qrDesc= findViewById<TextView>(R.id.qr_desc)
@@ -116,6 +120,16 @@ class EncryptActivity : AppCompatActivity() {
             }
         }
 
+        openImage.setOnClickListener {
+//            val intent = Intent(Intent.ACTION_GET_CONTENT)
+//            intent.type = "image/*"
+//            startActivityForResult(intent, REQUEST_CODE_OPEN_FILE)
+
+            val pickIntent = Intent(Intent.ACTION_PICK)
+            pickIntent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
+            startActivityForResult(pickIntent, REQUEST_CODE_OPEN_FILE)
+        }
+
 
         lockIconContainer.setOnClickListener {
             isInPreviewMode = !isInPreviewMode
@@ -127,6 +141,7 @@ class EncryptActivity : AppCompatActivity() {
             iterationCountEdit.isEnabled = isEditable
             iterationCountEditConfirm.isEnabled = isEditable
             scanner.isEnabled = isEditable
+            openImage.isEnabled = isEditable
             encryptButton.isEnabled = isEditable
             decryptButton.isEnabled = isEditable
             clearButton.isEnabled = isEditable
@@ -245,19 +260,67 @@ class EncryptActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, @Nullable data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        val intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
-        // if the intentResult is null then
-        // toast a message as "cancelled"
-        if (intentResult != null) {
-            if (intentResult.contents == null) {
-                Toast.makeText(baseContext, "Cancelled", Toast.LENGTH_SHORT).show()
-            } else {
-                // if the intentResult is not null we'll set
-                // the content and format of scan message
-                textEdit.setText(intentResult.contents)
+
+
+        if (requestCode == REQUEST_CODE_OPEN_FILE && resultCode == Activity.RESULT_OK) {
+            if (data == null || data.data == null) {
+                Log.e(
+                    "TAG",
+                    "The uri is null, probably the user cancelled the image selection process using the back button."
+                )
+                return
             }
+            val uri = data.data
+            val imageDecoder = QRCodeDecoder()
+            val result = imageDecoder.decodeQRCode(contentResolver, uri)
+            textEdit.setText(result)
+            // below works also
+            // https://stackoverflow.com/questions/3422651/decoding-qr-code-from-image-stored-on-the-phone-with-zxing-on-android-phone
+//            val uri = data.data
+//            try {
+//                val inputStream = contentResolver.openInputStream(uri!!)
+//                var bitmap = BitmapFactory.decodeStream(inputStream)
+//                if (bitmap == null) {
+//                    Log.e("TAG", "uri is not a bitmap,$uri")
+//                    return
+//                }
+//                val width = bitmap.width
+//                val height = bitmap.height
+//                val pixels = IntArray(width * height)
+//                bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+//                bitmap.recycle()
+//                bitmap = null
+//                val source = RGBLuminanceSource(width, height, pixels)
+//                val bBitmap = BinaryBitmap(HybridBinarizer(source))
+//                val reader = MultiFormatReader()
+//                try {
+//                    val result: Result = reader.decode(bBitmap)
+//                    Toast.makeText(
+//                        this,
+//                        "The content of the QR image is: " + result.getText(),
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                } catch (e: NotFoundException) {
+//                    Log.e("TAG", "decode exception", e)
+//                }
+//            } catch (e: FileNotFoundException) {
+//                Log.e("TAG", "can not open file" + uri.toString(), e)
+//            }
         } else {
-            super.onActivityResult(requestCode, resultCode, data)
+            val intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+            // if the intentResult is null then
+            // toast a message as "cancelled"
+            if (intentResult != null) {
+                if (intentResult.contents == null) {
+                    Toast.makeText(baseContext, "Cancelled", Toast.LENGTH_SHORT).show()
+                } else {
+                    // if the intentResult is not null we'll set
+                    // the content and format of scan message
+                    textEdit.setText(intentResult.contents)
+                }
+            } else {
+                super.onActivityResult(requestCode, resultCode, data)
+            }
         }
     }
 

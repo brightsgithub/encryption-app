@@ -60,6 +60,4 @@ dependencies {
     // as a lib jar file, it still fails. Seems to be an issue with importing org.junit.jupiter:junit-jupiter-api:5.8.2
     // Junit 5. so using previous versions: io.mockk:mockk:1.12.2
     testImplementation "io.mockk:mockk:1.12.2"
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
